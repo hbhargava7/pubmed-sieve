@@ -256,7 +256,10 @@ def build_authors_query(authors_df: pd.DataFrame, require_hasabstract=True):
         PubMed query based on the constraints in the dataframe.
         
     """
-    
+    # If no authors, return empty string
+    if len(authors_df) == 0:
+        return ''
+
     # Build queries for each author row in place.
     authors_df['query'] = authors_df.apply(lambda row: author_query_from_row(row), axis=1)
 
@@ -270,7 +273,7 @@ def build_authors_query(authors_df: pd.DataFrame, require_hasabstract=True):
         i += 1
 
     # Add the hasabstract flag if desired
-    if require_hasabstract:
+    if require_hasabstract and len(authors_df) > 0:
         authors_query += ' AND hasabstract'
     
     return authors_query
@@ -299,29 +302,43 @@ def build_keyword_and_journal_query(keywords, journals, require_hasabstract=True
         
     """
     # First, add the keywords with [tiab] and OR flags.
-    kwquery = "("
-    for i, kw in enumerate(keywords):
-        kwquery += '(\"%s\"[tiab])' % kw
+    kwquery = ""
+    if len(keywords) > 0:
+        kwquery += "("
+        for i, kw in enumerate(keywords):
+            kwquery += '(\"%s\"[tiab])' % kw
 
-        if i < len(keywords) - 1:
-            kwquery += ' OR '
+            if i < len(keywords) - 1:
+                kwquery += ' OR '
 
-    kwquery += ')'
+        kwquery += ')'
     
     # Now form the journals query
-    jquery = '('
-    for i, jn in enumerate(journals):
-        jquery += '(\"%s\"[journal])' % jn
+    jquery = ""
+    if len(journals) > 0:
+        jquery += '('
+        for i, jn in enumerate(journals):
+            jquery += '(\"%s\"[journal])' % jn
 
-        if i < len(journals) - 1:
-            jquery += ' OR '
+            if i < len(journals) - 1:
+                jquery += ' OR '
 
-    jquery += ')'
+        jquery += ')'
 
     # Join the queries and add hasabstract if desired
-    query = kwquery + ' AND ' + jquery
+    if len(kwquery) > 0 and len(jquery) > 0:
+        query = kwquery + ' AND ' + jquery
+    elif len(kwquery) > 0 and len(jquery) == 0:
+        query = kwquery
+    elif len(kwquery) == 0 and len(jquery) > 0:
+        print('Journal list provided, but no keywords. Journal filters only apply to the keyword query, so will be ignored in this case.')
+        print('If you want to filter an authors-only search by journals, you can append the following to the authors query:')
+        print(' AND %s' % jquery)
+        query = kwquery
+    else:
+        return ''
     
-    if require_hasabstract:
+    if require_hasabstract and len(query) > 0:
         query += ' AND hasabstract'
 
     return query
@@ -425,13 +442,20 @@ def build_query_from_spreadsheet_url(url: str, sheet_id=None) -> str:
     print('pubmed-sieve parsed spreadsheet with id: %s' % sheet_id)
     print('pubmed-sieve building query with %i authors, %i keywords, and %i journals.' % (len(authors_df), len(keywords), len(journals)))
 
-    # Build the authors query
+     # Build the authors query
     authors_query = build_authors_query(authors_df=authors_df, require_hasabstract=True)
 
     # Build the keywords+journals query
     kw_query = build_keyword_and_journal_query(keywords=keywords, journals=journals, require_hasabstract=True)
 
-    # Stitch the queries together
-    final_query = '(%s) OR (%s)' % (authors_query, kw_query)
+    # Stitch the queries together, accounting for cases where one query is empty.
+    if len(authors_query) > 0 and len(kw_query) > 0:
+        final_query = '(%s) OR (%s)' % (authors_query, kw_query)
+    elif len(authors_query) > 0 and len(kw_query) == 0:
+        final_query = authors_query
+    elif len(authors_query) == 0 and len(kw_query) > 0:
+        final_query = kw_query
+    else:
+        raise Exception('No query was generated. THe spreadsheet may have been blank.')
 
     return final_query
