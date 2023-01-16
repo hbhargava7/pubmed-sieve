@@ -1,5 +1,7 @@
 # pubmed-sieve
 
+Tutorial Here: https://hershbhargava.com/writing/adaptively-following-the-scientific-literature/
+
 [![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/hbhargava7/pubmed-sieve/HEAD?labpath=1.%20Query%20Builder.ipynb)
 
 # TLDR
