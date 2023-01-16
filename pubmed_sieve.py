@@ -31,8 +31,8 @@ def load_input_from_spreadsheet(sheet_id: str):
     
     # Load the sheets into Pandas dataframes.
     try:
-        authors_df = pd.read_csv(authors_url, keep_default_na=False)
-        keywords_journals_df = pd.read_csv(keywords_and_journals_url, keep_default_na=False)
+        authors_df = pd.read_csv(authors_url, keep_default_na=False, on_bad_lines='skip')
+        keywords_journals_df = pd.read_csv(keywords_and_journals_url, keep_default_na=False, on_bad_lines='skip')
         
     except Exception as e:
         print('pubmed-sieve: Failed to get the input Google Sheet. Please make sure it has the same sheet names as the template and is set to "anyone with the link can view".')
@@ -45,7 +45,7 @@ def load_input_from_spreadsheet(sheet_id: str):
 
     # Make sure the name column is present (the only one that is actually required.)
     if 'Name' not in authors_df.columns:
-        raise Exception('pubmed-sieve: Didnt find required column `Name` in the authors sheet.')
+        raise Exception('pubmed-sieve: Didnt find required column `Name` in the authors sheet. Please make sure the spreadsheet is set to "Anyone with the link can view."')
     
     # Remove the example entry, if present
     if authors_df.iloc[0]['Name'] == "Name of the author, formatted like 'Hersh K Bhargava'":
@@ -362,6 +362,10 @@ def gen_pubmed_rss_link_for_query(feed_name: str, query_string: str):
         String URL of the RSS feed
         
     """
+    illegal_chars = ['&', '=', '<', '>', '/']
+    if any([c in feed_name for c in illegal_chars]):
+        raise ValueError('Feed name contains illegal characters: %s. Pubmed doesnt allow any of "&=<>/" in RSS feed names.' % illegal_chars)
+
     try:
     
         # Use selenium to interface with the headless browser
@@ -416,6 +420,7 @@ def gen_pubmed_rss_link_for_query(feed_name: str, query_string: str):
 
     except Exception as e:
         print('pubmed-sieve: Exception occurred while generating the Pubmed RSS link. You can generate on manually by navigating to Pubmed and clicking the "Create RSS" button.')
+        print(e)
 
 def build_query_from_spreadsheet_url(url: str, sheet_id=None) -> str:
     """
