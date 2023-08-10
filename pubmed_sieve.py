@@ -137,6 +137,8 @@ def author_query(fullname, altnames=None, affiliations=None, author_position=Non
         poshandle = '[1au]'
     elif author_position == 'last':
         poshandle = '[lastau]'
+    elif author_position == 'first_or_last':
+        poshandle = ['[1au]', '[lastau]']
     else:
         poshandle = '[au]'
         
@@ -156,6 +158,22 @@ def author_query(fullname, altnames=None, affiliations=None, author_position=Non
         if poshandle == '[1au]' or poshandle == '[lastau]':
             trunc_name = truncated_name(_name)
             query += ' AND %s%s)' % (trunc_name, poshandle)
+        elif isinstance(poshandle, list):
+            # query += ' AND '
+
+            pos_str = ''
+
+            for i, _poshandle in enumerate(poshandle):
+                trunc_name = truncated_name(_name)
+
+                if i == 0:
+                    pos_str += '%s%s' % (trunc_name, _poshandle)
+                else:
+                    pos_str += ' OR %s%s' % (trunc_name, _poshandle)
+                
+            query += ' AND (%s)' % (pos_str)
+
+            query += ')'
         else:
             query += ')'
         
