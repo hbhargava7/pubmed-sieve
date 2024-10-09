@@ -402,7 +402,7 @@ def gen_pubmed_rss_link_for_query(feed_name: str, query_string: str):
         chrome_options.add_argument(f'user-agent={user_agent}')
         chrome_options.add_argument('--allow-running-insecure-content')
         
-        driver = webdriver.Chrome('chromedriver',options=chrome_options)
+        driver = webdriver.Chrome(options=chrome_options)
 
         # Navigate to the PubMed website
         driver.get("https://www.ncbi.nlm.nih.gov/pubmed/")
